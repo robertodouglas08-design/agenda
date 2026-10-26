@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agenda da Manutenção</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --fg:#1d2528; --muted:#5d6a6e; --line:#d9dedb;
+  --accent:#1f5f6b; --accent-fg:#ffffff;
+  --late:#b4421f; --late-bg:#fbeee8; --today:#8a6400; --today-bg:#fbf3d9;
+  --ok:#2c6e49; --ok-bg:#e5f1e9; --exec:#1f5f6b; --exec-bg:#e1eef1;
+  --f-display:"Fraunces",Georgia,serif; --f-body:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121819; --surface:#1b2325; --fg:#e6ebea; --muted:#9aa8ab; --line:#2f3b3e;
+  --accent:#6bb7c4; --accent-fg:#0d1517;
+  --late:#f0906b; --late-bg:#33211b; --today:#e6c15a; --today-bg:#2f2916;
+  --ok:#7fc79b; --ok-bg:#1a2d22; --exec:#6bb7c4; --exec-bg:#16292d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121819; --surface:#1b2325; --fg:#e6ebea; --muted:#9aa8ab; --line:#2f3b3e;
+  --accent:#6bb7c4; --accent-fg:#0d1517;
+  --late:#f0906b; --late-bg:#33211b; --today:#e6c15a; --today-bg:#2f2916;
+  --ok:#7fc79b; --ok-bg:#1a2d22; --exec:#6bb7c4; --exec-bg:#16292d; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);padding-block:24px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 16px}
+h1{font:600 28px/1.15 var(--f-display);margin:0;text-wrap:balance}
+.hoje{font:400 13px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:500 15px var(--f-body);padding:10px 16px;cursor:pointer;margin-bottom:-1px;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.view{display:none;flex-direction:column;gap:22px}.view.on{display:flex}
+.aviso{background:var(--today-bg);color:var(--today);border-radius:4px;padding:10px 14px;font-size:14px}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line)}
+.kpi b{font:600 30px/1 var(--f-display)} .kpi span{font:500 11.5px var(--f-mono);text-transform:uppercase;letter-spacing:.06em}
+.kpi.late{background:var(--late-bg);color:var(--late);border-color:transparent}
+.kpi.today{background:var(--today-bg);color:var(--today);border-color:transparent}
+.kpi.exec{background:var(--exec-bg);color:var(--exec);border-color:transparent}
+.kpi.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+section h2{font:600 12px var(--f-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+section h2.late{color:var(--late)} section h2.today{color:var(--today)} section h2.ok{color:var(--ok)}
+.lista{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:4px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.item.vencida{border-left-color:var(--late)} .item.hoje{border-left-color:var(--today)} .item.execucao{border-left-color:var(--exec)}
+.item.concluida{border-left-color:var(--ok)} .item.cancelada,.item.semdata{border-left-color:var(--muted)}
+.item.done{opacity:.9}
+.topo{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:space-between;align-items:flex-start}
+.t{font-weight:600;overflow-wrap:anywhere;min-width:0;flex:1 1 220px}
+.d{color:var(--muted);font-size:14px;overflow-wrap:anywhere;white-space:pre-line}
+.pill{font:500 11.5px var(--f-mono);padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.pill.vencida{background:var(--late-bg);color:var(--late);border-color:transparent}
+.pill.hoje{background:var(--today-bg);color:var(--today);border-color:transparent}
+.pill.execucao{background:var(--exec-bg);color:var(--exec);border-color:transparent}
+.pill.concluida{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.pill.alta{color:var(--late);border-color:var(--late)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font:400 12.5px var(--f-mono);color:var(--muted)}
+.acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
+button.b{font:500 13px var(--f-body);padding:7px 13px;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+button.b.p{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.b.danger{color:var(--late)}
+input,textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0;max-width:100%;width:100%}
+.vazio{color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:4px;font-size:14px}
+form.novo{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+form.novo label{display:flex;flex-direction:column;gap:4px;font:500 12px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);min-width:0}
+form.novo .full{grid-column:1/-1}
+form.novo .acoes{margin:0}
+.lojainfo{font:400 13px var(--f-mono);color:var(--muted);text-transform:none;letter-spacing:0;min-height:20px}
+.lojainfo.ok{color:var(--ok)} .lojainfo.erro{color:var(--late)}
+h3{font:600 18px var(--f-display);margin:0}
+.barras{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px}
+.barra{display:grid;grid-template-columns:minmax(120px,190px) 1fr 70px;gap:10px;align-items:center;font-size:13.5px}
+.barra .n{min-width:0;overflow-wrap:anywhere}.barra .n small{display:block;color:var(--muted);font:400 11.5px var(--f-mono)}
+.trilho{height:14px;background:var(--bg);border-radius:3px;position:relative;overflow:hidden}
+.trilho i{position:absolute;left:0;top:0;bottom:0;display:block}
+.trilho .a{background:var(--accent);opacity:.55}.trilho .v{background:var(--late)}
+.barra .c{font:500 12.5px var(--f-mono);text-align:right;color:var(--muted)}
+.legenda{display:flex;gap:16px;font:400 12px var(--f-mono);color:var(--muted)}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.filtros{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.rodape{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px}
+.dia{font:600 12px var(--f-mono);color:var(--accent);margin:12px 0 6px}
+@media (max-width:640px){.filtros{grid-template-columns:1fr}.barra{grid-template-columns:1fr 60px}.barra .trilho{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:no-preference){.item,.kpi{transition:background .2s}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Agenda da Manutenção</h1>
+    <div class="hoje" id="hoje"></div>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="dash" aria-selected="true">Dashboard</button>
+    <button class="tab" role="tab" data-v="cad" aria-selected="false">Cadastro</button>
+    <button class="tab" role="tab" data-v="lista" aria-selected="false">A realizar e realizadas</button>
+  </div>
+  <div id="aviso" class="aviso" hidden></div>
+
+  <!-- DASHBOARD -->
+  <div class="view on" id="v-dash">
+    <div class="resumo" id="kpis"></div>
+    <div id="dash-secoes" style="display:flex;flex-direction:column;gap:22px"></div>
+    <section>
+      <h2>Ações abertas por regional</h2>
+      <div class="barras" id="barras"></div>
+      <div class="legenda" style="margin-top:8px"><span><i style="background:var(--accent);opacity:.55"></i>abertas</span><span><i style="background:var(--late)"></i>vencidas</span></div>
+    </section>
+  </div>
+
+  <!-- CADASTRO -->
+  <div class="view" id="v-cad">
+    <section>
+      <h3 id="cad-titulo" style="margin-bottom:10px">Nova ação ou compromisso</h3>
+      <form class="novo" id="f-acao">
+        <label class="full">Título<input id="a-titulo" required maxlength="250"></label>
+        <label>Início previsto<input id="a-ini" type="date"></label>
+        <label>Prazo final<input id="a-fim" type="date"></label>
+        <label>Horário<input id="a-hora" type="time"></label>
+        <label>Nº da loja<input id="a-loja" type="number" min="1" inputmode="numeric" placeholder="ex.: 240"></label>
+        <div class="full lojainfo" id="a-lojainfo"></div>
+        <label>Responsável pela execução<input id="a-resp" maxlength="100"></label>
+        <label>Categoria<select id="a-cat"></select></label>
+        <label>Prioridade<select id="a-prio"><option value="">-</option><option>Alta</option><option>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="a-status"><option value="pendente">Pendente</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select></label>
+        <label class="full">Detalhes<textarea id="a-det" rows="3" maxlength="2000"></textarea></label>
+        <div class="full acoes"><button class="b p" type="submit" id="a-salvar">Salvar na agenda</button><button class="b" type="button" id="a-limpar">Limpar</button></div>
+      </form>
+    </section>
+    <section>
+      <h3 style="margin-bottom:10px">Registrar atividade realizada</h3>
+      <form class="novo" id="f-ativ">
+        <label>Data<input id="r-data" type="date" required></label>
+        <label>Nº da loja (opcional)<input id="r-loja" type="number" min="1" inputmode="numeric"></label>
+        <div class="full lojainfo" id="r-lojainfo"></div>
+        <label class="full">O que foi feito<textarea id="r-texto" rows="3" required maxlength="2000"></textarea></label>
+        <div class="full acoes"><button class="b p" type="submit">Salvar registro</button></div>
+      </form>
+    </section>
+    <section>
+      <h2>Últimos cadastros</h2>
+      <div class="lista" id="recentes"></div>
+    </section>
+  </div>
+
+  <!-- LISTA -->
+  <div class="view" id="v-lista">
+    <div class="filtros">
+      <input id="f-busca" type="search" placeholder="Buscar por ação, loja, responsável ou supervisor" aria-label="Buscar">
+      <select id="f-reg" aria-label="Regional"></select>
+      <select id="f-sit" aria-label="Situação">
+        <option value="">Todas as situações</option><option value="vencida">Vencidas</option><option value="hoje">Para hoje</option>
+        <option value="execucao">Em execução</option><option value="agendada">Agendadas</option><option value="semdata">Sem data</option>
+      </select>
+    </div>
+    <section><h2 id="h-abertas">A realizar</h2><div class="lista" id="l-abertas"></div></section>
+    <section><h2 class="ok" id="h-feitas">Realizadas</h2><div id="l-feitas"></div></section>
+  </div>
+
+  <div class="rodape">
+    <span>Os dados ficam salvos neste navegador, neste computador.</span>
+    <button class="b" id="exp" type="button">Exportar cópia (arquivo)</button>
+    <button class="b" id="imp" type="button">Importar cópia</button>
+    <input id="imp-file" type="file" accept=".json,application/json" hidden>
+    <span id="imp-confirma" hidden>
+      <button class="b danger" id="imp-sim" type="button">Substituir os dados atuais</button>
+      <button class="b" id="imp-nao" type="button">Cancelar</button>
+    </span>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---------- Cadastro de lojas (nº, nome, regional) ---------- */
+var SUP={1:'Ernane Gabriel',2:'Igor Leal',3:'Fernando Silva',4:'Diego Conceição',5:'Carlos Santos',6:'Rodrigo Verneck',7:'Reginaldo Bellico',8:'Antonio Maia',9:'Eluiz Albino'};
+var RAW={
+1:[[202,'Riacho'],[211,'São Joaquim'],[235,'Davi Sarnoff'],[251,'Serrano'],[252,'Nova Lima'],[269,'RMMG'],[273,'Barreiro'],[276,'Ibirité'],[277,'Sabará'],[278,'Ribeirão das Neves'],[283,'Silva Lobo']],
+2:[[205,'Governador Valadares'],[217,'Santana do Paraíso'],[233,'Teófilo Otoni'],[239,'Itabira'],[244,'João Monlevade'],[256,'Caratinga'],[281,'Caeté']],
+3:[[207,'Uberaba I'],[210,'Uberlândia I'],[214,'Ituiutaba'],[218,'Araporã'],[221,'Araguari'],[222,'Uberlândia II'],[223,'Uberaba II'],[238,'Uberlândia III'],[246,'Uberlândia IV'],[265,'Uberaba III']],
+4:[[213,'Patos de Minas 1'],[224,'Paracatu'],[225,'Patrocínio'],[228,'Araxá'],[240,'Unaí'],[245,'Patos de Minas 2'],[249,'Monte Carmelo'],[254,'João Pinheiro'],[272,'Pirapora']],
+5:[[215,'Alfenas'],[216,'Pouso Alegre'],[227,'Três Corações'],[229,'Lavras'],[236,'Varginha'],[242,'Poços de Caldas'],[248,'Campo Belo'],[258,'Três Pontas'],[264,'Extrema']],
+6:[[206,'Juiz de Fora 1'],[220,'Ubá'],[230,'Barbacena'],[234,'Conselheiro Lafaiete'],[241,'São João del-Rei'],[253,'Juiz de Fora 2'],[255,'Leopoldina'],[257,'Congonhas'],[290,'Ouro Preto']],
+7:[[204,'Santa Luzia'],[261,'Vespasiano'],[263,'Linha Verde'],[279,'Lagoa Santa'],[280,'Pedro Leopoldo'],[286,'Floramar'],[288,'Santa Luzia II'],[289,'São Benedito']],
+8:[[209,'Sete Lagoas I'],[219,'Montes Claros I'],[250,'Janaúba'],[259,'Montes Claros II'],[260,'Montes Claros III'],[267,'Curvelo'],[274,'Januária'],[284,'Sete Lagoas II']],
+9:[[201,'Divinópolis 1'],[226,'Pará de Minas'],[231,'Passos'],[232,'Itaúna'],[237,'Divinópolis 2'],[247,'Bom Despacho'],[262,'Betim 1'],[271,'Betim 2'],[285,'Betim 3'],[287,'Betim 4'],[291,'Lagoa da Prata']]};
+var LOJAS={};
+Object.keys(RAW).forEach(function(r){RAW[r].forEach(function(l){LOJAS[l[0]]={nome:l[1],reg:Number(r)}})});
+function lojaInfo(n){n=Number(n);if(!n)return null;var l=LOJAS[n];return l?{n:n,nome:l.nome,reg:l.reg,sup:SUP[l.reg]}:{n:n,nome:null}}
+var CATS=['Refrigeração','Elétrica','Hidráulica','Civil / Estrutural','Climatização','Calhas e cobertura','Portões e portas','Equipamentos','Empilhadeiras','Gerador','Segurança e incêndio','Gás','Obras e reformas','Treinamento / NR','Fornecedores e contratos','Equipe e pessoas','Relatórios e documentação','Reunião / alinhamento','Outros'];
+
+/* ---------- Datas ---------- */
+function pad(n){return String(n).padStart(2,'0')}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function addDias(s,n){var p=s.split('-').map(Number);var d=new Date(p[0],p[1]-1,p[2]+n);return iso(d)}
+var DIAS=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+function fmt(s){var p=s.split('-').map(Number);return DIAS[new Date(p[0],p[1]-1,p[2]).getDay()]+', '+pad(p[2])+'/'+pad(p[1])+'/'+p[0]}
+function fcurto(s){var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function dm(s){var p=s.split('-');return p[2]+'/'+p[1]}
+function diff(a,b){var x=a.split('-').map(Number),y=b.split('-').map(Number);return Math.round((new Date(y[0],y[1]-1,y[2])-new Date(x[0],x[1]-1,x[2]))/864e5)}
+var HOJE=iso(new Date());
+
+/* ---------- Armazenamento ---------- */
+var KEY='agendaManutencao_v1', storageOk=true, dados=null;
+function carregar(){
+  try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);if(o&&o.acoes&&o.atividades)return o}}catch(e){storageOk=false}
+  return null;
+}
+function salvar(){try{localStorage.setItem(KEY,JSON.stringify(dados))}catch(e){storageOk=false;avisar()}}
+var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)};
+dados=carregar();
+if(!dados){dados={acoes:[],atividades:[]};salvar()}
+
+/* ---------- Regras ---------- */
+function prazo(a){return a.fim||a.ini||''}
+function inicio(a){return a.ini||a.fim||''}
+function sit(a){
+  if(a.status==='concluida')return 'concluida';
+  if(a.status==='cancelada')return 'cancelada';
+  var p=prazo(a);if(!p)return 'semdata';
+  if(p<HOJE)return 'vencida';
+  if(p===HOJE)return 'hoje';
+  if(inicio(a)<=HOJE)return 'execucao';
+  return 'agendada';
+}
+var ROT={vencida:'Vencida · confirmar',hoje:'Para hoje',execucao:'Em execução',agendada:'Agendada',semdata:'Sem data',concluida:'Concluída',cancelada:'Cancelada'};
+function aberta(a){var s=sit(a);return s!=='concluida'&&s!=='cancelada'}
+function porData(a,b){return (prazo(a)||'9999').localeCompare(prazo(b)||'9999')||(a.hora||'').localeCompare(b.hora||'')||a.criado-b.criado}
+function porInicio(a,b){return (inicio(a)||'9999').localeCompare(inicio(b)||'9999')||a.criado-b.criado}
+
+/* ---------- Utilidades de DOM ---------- */
+function $(id){return document.getElementById(id)}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function avisar(){var a=$('aviso');
+  if(!storageOk){a.hidden=false;a.textContent='Este navegador está bloqueando o armazenamento. Os dados valem só enquanto a página estiver aberta. Use "Exportar cópia" para guardar.'}else a.hidden=true}
+var confirmando=null;
+
+/* ---------- Cartão de ação ---------- */
+function cartao(a){
+  var s=sit(a);
+  var c=el('div','item '+s+((s==='concluida'||s==='cancelada')?' done':''));
+  var top=el('div','topo');top.appendChild(el('div','t',a.titulo));
+  var pr=el('div');pr.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+  if(a.prio==='Alta')pr.appendChild(el('span','pill alta','Prioridade alta'));
+  pr.appendChild(el('span','pill '+s,s==='vencida'?'Vencida há '+diff(prazo(a),HOJE)+(diff(prazo(a),HOJE)===1?' dia':' dias'):ROT[s]));
+  top.appendChild(pr);c.appendChild(top);
+  if(a.det)c.appendChild(el('div','d',a.det));
+  var m=el('div','meta');
+  var i=inicio(a),p=prazo(a);
+  if(i&&p&&i!==p)m.appendChild(el('span','','de '+fcurto(i)+' a '+fcurto(p)));
+  else if(p)m.appendChild(el('span','',fcurto(p)+(a.hora?' · '+a.hora:'')));
+  else m.appendChild(el('span','','sem data/horário definido'));
+  if(i&&p&&i!==p&&a.hora)m.appendChild(el('span','','às '+a.hora));
+  var l=lojaInfo(a.loja);
+  if(l)m.appendChild(el('span','',l.nome?('Loja '+l.n+' · '+l.nome+' · Regional '+l.reg+' · Sup. '+l.sup):('Loja '+l.n+' (não cadastrada)')));
+  if(a.resp)m.appendChild(el('span','','Resp.: '+a.resp));
+  if(a.cat)m.appendChild(el('span','',a.cat));
+  if(a.concluidoEm)m.appendChild(el('span','','concluída em '+fcurto(a.concluidoEm)));
+  c.appendChild(m);
+  var ac=el('div','acoes');
+  if(aberta(a)){
+    var ok=el('button','b p',s==='vencida'?'Confirmar conclusão':'Marcar como concluída');
+    ok.onclick=function(){a.status='concluida';a.concluidoEm=HOJE;salvar();render()};ac.appendChild(ok);
+    var di=el('input');di.type='date';di.value=p||'';di.style.width='auto';di.setAttribute('aria-label','Nova data');ac.appendChild(di);
+    var re=el('button','b','Reagendar');re.onclick=function(){if(!di.value)return;if(!a.ini||a.ini===a.fim||a.ini>di.value)a.ini=di.value;a.fim=di.value;if(a.ini>a.fim)a.ini=a.fim;salvar();render()};ac.appendChild(re);
+  }else{
+    var rb=el('button','b','Reabrir');rb.onclick=function(){a.status='pendente';delete a.concluidoEm;salvar();render()};ac.appendChild(rb);
+  }
+  var ed=el('button','b','Editar');ed.onclick=function(){editar(a)};ac.appendChild(ed);
+  var ex=el('button','b danger',confirmando===a.id?'Confirmar exclusão':'Excluir');
+  ex.onclick=function(){if(confirmando===a.id){dados.acoes=dados.acoes.filter(function(x){return x.id!==a.id});confirmando=null;salvar();render()}else{confirmando=a.id;render()}};
+  ac.appendChild(ex);c.appendChild(ac);return c;
+}
+function cartaoAtiv(a){
+  var c=el('div','item concluida done');
+  var top=el('div','topo');top.appendChild(el('div','t',a.texto));top.appendChild(el('span','pill concluida','Atividade registrada'));c.appendChild(top);
+  var l=lojaInfo(a.loja);
+  if(l){var m=el('div','meta');m.appendChild(el('span','',l.nome?('Loja '+l.n+' · '+l.nome+' · Regional '+l.reg+' · Sup. '+l.sup):('Loja '+l.n+' (não cadastrada)')));c.appendChild(m)}
+  var ac=el('div','acoes');
+  var ex=el('button','b danger',confirmando==='at'+a.id?'Confirmar exclusão':'Excluir');
+  ex.onclick=function(){if(confirmando==='at'+a.id){dados.atividades=dados.atividades.filter(function(x){return x.id!==a.id});confirmando=null;salvar();render()}else{confirmando='at'+a.id;render()}};
+  ac.appendChild(ex);c.appendChild(ac);return c;
+}
+function secao(titulo,cls,itens,vazio){
+  var s=el('section');s.appendChild(el('h2',cls,titulo+' · '+itens.length));
+  var l=el('div','lista');
+  if(!itens.length&&vazio)l.appendChild(el('div','vazio',vazio));
+  itens.forEach(function(a){l.appendChild(cartao(a))});s.appendChild(l);return s;
+}
+
+/* ---------- Dashboard ---------- */
+function renderDash(){
+  var ac=dados.acoes,abertas=ac.filter(aberta);
+  var venc=abertas.filter(function(a){return sit(a)==='vencida'}).sort(porData);
+  var hoje=abertas.filter(function(a){var s=sit(a);return s==='hoje'||s==='execucao'}).sort(porData);
+  var lim=addDias(HOJE,7);
+  var prox=abertas.filter(function(a){return sit(a)==='agendada'&&inicio(a)<=lim}).sort(porInicio);
+  var sem=abertas.filter(function(a){return sit(a)==='semdata'});
+  var conc=ac.filter(function(a){return a.status==='concluida'});
+  var k=$('kpis');k.textContent='';
+  [['Abertas',abertas.length,''],['Vencidas',venc.length,'late'],['Hoje / em execução',hoje.length,'today'],['Próximos 7 dias',prox.length,'exec'],['Sem data',sem.length,''],['Concluídas',conc.length,'ok']].forEach(function(x){
+    var d=el('div','kpi '+x[2]);d.appendChild(el('b','',String(x[1])));d.appendChild(el('span','',x[0]));k.appendChild(d)});
+  var S=$('dash-secoes');S.textContent='';
+  if(venc.length)S.appendChild(secao('Vencidas · confirmar conclusão','late',venc));
+  S.appendChild(secao('Hoje e em execução','today',hoje,'Nenhum compromisso para hoje.'));
+  S.appendChild(secao('Próximos 7 dias','',prox,'Nada agendado para os próximos 7 dias.'));
+  if(sem.length)S.appendChild(secao('Sem data definida','',sem));
+  // barras por regional
+  var B=$('barras');B.textContent='';var max=1,rows=[];
+  for(var r=1;r<=9;r++){
+    var ab=abertas.filter(function(a){var l=lojaInfo(a.loja);return l&&l.reg===r});
+    var vv=ab.filter(function(a){return sit(a)==='vencida'});
+    rows.push({n:'Regional '+r,s:SUP[r],a:ab.length,v:vv.length});max=Math.max(max,ab.length);
+  }
+  var sl=abertas.filter(function(a){var l=lojaInfo(a.loja);return !l||!l.nome});
+  rows.push({n:'Sem loja informada',s:'ações gerais',a:sl.length,v:sl.filter(function(a){return sit(a)==='vencida'}).length});max=Math.max(max,sl.length);
+  rows.forEach(function(x){
+    var b=el('div','barra');var n=el('div','n',x.n);n.appendChild(el('small','',x.s));b.appendChild(n);
+    var t=el('div','trilho');var a=el('i','a');a.style.width=(x.a/max*100)+'%';t.appendChild(a);
+    if(x.v){var v=el('i','v');v.style.width=(x.v/max*100)+'%';t.appendChild(v)}
+    b.appendChild(t);b.appendChild(el('div','c',x.a+' / '+x.v));B.appendChild(b)});
+}
+
+/* ---------- Cadastro ---------- */
+var editId=null;
+function preencheCats(){var s=$('a-cat');s.textContent='';var o=el('option','','-');o.value='';s.appendChild(o);CATS.forEach(function(c){var x=el('option','',c);x.value=c;s.appendChild(x)})}
+function lojaPreview(inp,out){
+  var l=lojaInfo(inp.value);out.className='full lojainfo';
+  if(!l){out.textContent='Digite o número da loja: nome, regional e supervisor aparecem aqui.';return}
+  if(!l.nome){out.textContent='Loja '+l.n+' não está no cadastro. A ação será salva mesmo assim.';out.className+=' erro';return}
+  out.textContent='Loja '+l.n+' · '+l.nome+' · Regional '+l.reg+' · Supervisor: '+l.sup;out.className+=' ok';
+}
+function limpaForm(){
+  editId=null;$('f-acao').reset();$('a-status').value='pendente';$('cad-titulo').textContent='Nova ação ou compromisso';$('a-salvar').textContent='Salvar na agenda';lojaPreview($('a-loja'),$('a-lojainfo'));
+}
+function editar(a){
+  mostrar('cad');editId=a.id;
+  $('a-titulo').value=a.titulo;$('a-ini').value=a.ini||'';$('a-fim').value=a.fim||'';$('a-hora').value=a.hora||'';$('a-loja').value=a.loja||'';
+  $('a-resp').value=a.resp||'';$('a-cat').value=a.cat||'';$('a-prio').value=a.prio||'';$('a-status').value=a.status;$('a-det').value=a.det||'';
+  $('cad-titulo').textContent='Editar ação';$('a-salvar').textContent='Salvar alterações';lojaPreview($('a-loja'),$('a-lojainfo'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('a-loja').addEventListener('input',function(){lojaPreview($('a-loja'),$('a-lojainfo'))});
+$('r-loja').addEventListener('input',function(){lojaPreview($('r-loja'),$('r-lojainfo'))});
+$('a-limpar').onclick=limpaForm;
+$('f-acao').addEventListener('submit',function(e){
+  e.preventDefault();
+  var ini=$('a-ini').value,fim=$('a-fim').value;
+  if(ini&&fim&&ini>fim){var t=ini;ini=fim;fim=t}
+  var o={titulo:$('a-titulo').value.trim(),ini:ini,fim:fim,hora:$('a-hora').value,loja:$('a-loja').value?Number($('a-loja').value):'',resp:$('a-resp').value.trim(),
+    cat:$('a-cat').value,prio:$('a-prio').value,status:$('a-status').value,det:$('a-det').value.trim()};
+  if(!o.titulo)return;
+  if(editId){var a=dados.acoes.filter(function(x){return x.id===editId})[0];if(a){var antes=a.status;Object.assign(a,o);
+      if(o.status==='concluida'&&antes!=='concluida')a.concluidoEm=HOJE;if(o.status!=='concluida')delete a.concluidoEm}}
+  else{o.id=uid();o.criado=Date.now();if(o.status==='concluida')o.concluidoEm=HOJE;dados.acoes.push(o)}
+  salvar();limpaForm();render();
+});
+$('f-ativ').addEventListener('submit',function(e){
+  e.preventDefault();var t=$('r-texto').value.trim();if(!t)return;
+  dados.atividades.push({id:uid(),data:$('r-data').value||HOJE,loja:$('r-loja').value?Number($('r-loja').value):'',texto:t,criado:Date.now()});
+  $('r-texto').value='';$('r-loja').value='';lojaPreview($('r-loja'),$('r-lojainfo'));salvar();render();
+});
+function renderCad(){
+  var r=$('recentes');r.textContent='';
+  var lista=dados.acoes.slice().sort(function(a,b){return b.criado-a.criado}).slice(0,5);
+  if(!lista.length)r.appendChild(el('div','vazio','Nenhuma ação cadastrada ainda.'));
+  lista.forEach(function(a){r.appendChild(cartao(a))});
+}
+
+/* ---------- Lista ---------- */
+function filtra(a){
+  var q=$('f-busca').value.trim().toLowerCase(),reg=$('f-reg').value;
+  var l=lojaInfo(a.loja);
+  if(reg){if(!l||String(l.reg)!==reg)return false}
+  if(q){var h=[a.titulo,a.det,a.resp,a.cat,l?(l.n+' '+(l.nome||'')+' '+(l.sup||'')):''].join(' ').toLowerCase();if(h.indexOf(q)<0)return false}
+  return true;
+}
+function renderLista(){
+  var s=$('f-sit').value;
+  var ab=dados.acoes.filter(aberta).filter(filtra).filter(function(a){return !s||sit(a)===s}).sort(porData);
+  $('h-abertas').textContent='A realizar · '+ab.length;
+  var L=$('l-abertas');L.textContent='';
+  if(!ab.length)L.appendChild(el('div','vazio','Nenhuma ação a realizar com esses filtros.'));
+  ab.forEach(function(a){L.appendChild(cartao(a))});
+  var feitas=[];
+  dados.acoes.filter(function(a){return !aberta(a)}).filter(filtra).forEach(function(a){feitas.push({d:a.concluidoEm||prazo(a)||'',t:'a',x:a})});
+  if(!$('f-reg').value&&!s){}
+  dados.atividades.filter(function(a){
+    var q=$('f-busca').value.trim().toLowerCase(),reg=$('f-reg').value,l=lojaInfo(a.loja);
+    if(s)return false;
+    if(reg&&(!l||String(l.reg)!==reg))return false;
+    if(q&&(a.texto+' '+(l?(l.n+' '+(l.nome||'')+' '+(l.sup||'')):'')).toLowerCase().indexOf(q)<0)return false;return true;
+  }).forEach(function(a){feitas.push({d:a.data||'',t:'r',x:a})});
+  feitas.sort(function(a,b){return b.d.localeCompare(a.d)});
+  $('h-feitas').textContent='Realizadas · '+feitas.length;
+  var F=$('l-feitas');F.textContent='';
+  if(!feitas.length)F.appendChild(el('div','vazio','Nenhuma atividade realizada com esses filtros.'));
+  var atual=null,lst=null;
+  feitas.forEach(function(f){
+    if(f.d!==atual){atual=f.d;F.appendChild(el('div','dia',f.d?fmt(f.d):'Sem data'));lst=el('div','lista');F.appendChild(lst)}
+    lst.appendChild(f.t==='a'?cartao(f.x):cartaoAtiv(f.x));
+  });
+}
+['f-busca','f-reg','f-sit'].forEach(function(id){$(id).addEventListener('input',renderLista)});
+(function(){var s=$('f-reg');var o=el('option','','Todas as regionais');o.value='';s.appendChild(o);for(var r=1;r<=9;r++){var x=el('option','','Regional '+r+' · '+SUP[r]);x.value=String(r);s.appendChild(x)}})();
+
+/* ---------- Navegação e desenho ---------- */
+var atual='dash';
+function mostrar(v){
+  atual=v;confirmando=null;
+  ['dash','cad','lista'].forEach(function(x){$('v-'+x).classList.toggle('on',x===v)});
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(t){t.setAttribute('aria-selected',t.getAttribute('data-v')===v)});
+  render();
+}
+function render(){
+  if(atual==='dash')renderDash();else if(atual==='cad')renderCad();else renderLista();
+  avisar();
+}
+Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(t){t.onclick=function(){mostrar(t.getAttribute('data-v'))}});
+
+/* ---------- Cópia de segurança ---------- */
+$('exp').onclick=function(){
+  try{var b=new Blob([JSON.stringify(dados,null,1)],{type:'application/json'});var a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download='agenda-manutencao-'+HOJE+'.json';document.body.appendChild(a);a.click();a.remove()}
+  catch(e){$('aviso').hidden=false;$('aviso').textContent='Não foi possível gerar o arquivo neste navegador.'}
+};
+var pend=null;
+$('imp').onclick=function(){$('imp-file').click()};
+$('imp-file').onchange=function(){
+  var f=this.files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var o=JSON.parse(r.result);if(!o||!Array.isArray(o.acoes)||!Array.isArray(o.atividades))throw 0;pend=o;$('imp-confirma').hidden=false}
+    catch(e){$('aviso').hidden=false;$('aviso').textContent='O arquivo escolhido não é uma cópia desta agenda.'}};
+  r.readAsText(f);this.value='';
+};
+$('imp-sim').onclick=function(){if(pend){dados=pend;pend=null;salvar();$('imp-confirma').hidden=true;render()}};
+$('imp-nao').onclick=function(){pend=null;$('imp-confirma').hidden=true};
+
+/* ---------- Início ---------- */
+$('hoje').textContent=fmt(HOJE);
+$('r-data').value=HOJE;
+preencheCats();lojaPreview($('a-loja'),$('a-lojainfo'));lojaPreview($('r-loja'),$('r-lojainfo'));
+render();
+})();
+</script>
+</body>
+</html>
